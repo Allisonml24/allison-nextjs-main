@@ -14,7 +14,7 @@ import { AlertCircle, LogOut } from 'lucide-react'
 // Configuración de axios para enviar credenciales
 axios.defaults.withCredentials = true
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://allison-django-main-4m3m.vercel.app/api'
 
 export default function AuthComponent() {
   const [username, setUsername] = useState('')

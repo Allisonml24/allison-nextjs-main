@@ -21,7 +21,7 @@ export function DashboardStats() {
   useEffect(() => {
     const fetchVentas = async () => {
     
-        const response = await axios.get<Venta[]>('http://localhost:8000/api/ventas');
+        const response = await axios.get<Venta[]>('https://allison-django-main-c7mj.vercel.app/api/ventas');
         setVentas(response.data);
         setLoading(false);
         // Recargar la página solo una vez

@@ -39,7 +39,7 @@ interface ProductoDialogProps {
 }
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/',
+  baseURL: 'https://allison-django-main-c7mj.vercel.app/api/',
 });
 
 // Función para obtener productos

@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "https://allison-django-main-c7mj.vercel.app";
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
@@ -38,7 +38,7 @@ export default function Navbar() {
       await axios.post(`${API_BASE_URL}/api/logout/`, {}, {
         withCredentials: true
       });
-      router.push('http://localhost:3000');
+      router.push('https://allison-nextjs-main.vercel.app');
       
       
     } catch (error) {

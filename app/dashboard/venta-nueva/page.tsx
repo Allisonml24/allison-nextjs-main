@@ -345,9 +345,9 @@ export default function NuevaVenta() {
     async function fetchData() {
       try {
         const [productosResponse, clientesResponse, ventasResponse] = await Promise.all([
-          axios.get('http://localhost:8000/api/productos/'),
-          axios.get('http://localhost:8000/api/clientes/'),
-          axios.get('http://localhost:8000/api/ventas/')
+          axios.get('https://allison-django-main-c7mj.vercel.app/api/productos/'),
+          axios.get('https://allison-django-main-c7mj.vercel.app/api/clientes/'),
+          axios.get('https://allison-django-main-c7mj.vercel.app/api/ventas/')
         ]);
         
         setProductos(productosResponse.data);
@@ -445,7 +445,7 @@ export default function NuevaVenta() {
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/api/ventas/', {
+      const response = await axios.post('https://allison-django-main-c7mj.vercel.app/api/ventas/', {
         cliente: selectedCliente,
         items: items.map(item => ({
           producto: item.producto,
@@ -458,7 +458,7 @@ export default function NuevaVenta() {
       await generatePDF();
 
       // Refrescar la lista de ventas
-      const ventasResponse = await axios.get('http://localhost:8000/api/ventas/');
+      const ventasResponse = await axios.get('https://allison-django-main-c7mj.vercel.app/api/ventas/');
       setVentas(ventasResponse.data);
 
       toast.success("Venta registrada con éxito");

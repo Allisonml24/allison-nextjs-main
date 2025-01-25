@@ -42,7 +42,7 @@ export default function Inventario() {
   useEffect(() => {
     const obtenerCategorias = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/categorias');
+        const response = await axios.get('https://allison-django-main-c7mj.vercel.app/api/categorias');
         setCategorias(response.data);
       } catch (error) {
         console.error('Error al obtener categorias:', error);

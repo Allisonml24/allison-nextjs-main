@@ -83,9 +83,9 @@ export default function NuevaCompra() {
     async function fetchData() {
       try {
         const [productosResponse, proveedoresResponse, comprasResponse] = await Promise.all([
-          axios.get('http://localhost:8000/api/productos/'),
-          axios.get('http://localhost:8000/api/proveedores/'),
-          axios.get('http://localhost:8000/api/compras/')
+          axios.get('https://allison-django-main-c7mj.vercel.app/api/productos/'),
+          axios.get('https://allison-django-main-c7mj.vercel.app/api/proveedores/'),
+          axios.get('https://allison-django-main-c7mj.vercel.app/api/compras/')
         ]);
         
         setProductos(productosResponse.data);
@@ -145,7 +145,7 @@ export default function NuevaCompra() {
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/api/compras/', {
+      const response = await axios.post('https://allison-django-main-c7mj.vercel.app/api/compras/', {
         proveedor: selectedProveedor,
         items: items.map(item => ({
           producto: item.producto,
@@ -154,7 +154,7 @@ export default function NuevaCompra() {
         })),
       });
 
-      const comprasResponse = await axios.get('http://localhost:8000/api/compras/');
+      const comprasResponse = await axios.get('https://allison-django-main-c7mj.vercel.app/api/compras/');
       setCompras(comprasResponse.data);
 
       toast.success("Compra registrada con éxito");

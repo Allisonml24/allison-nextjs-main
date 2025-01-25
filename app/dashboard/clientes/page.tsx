@@ -45,7 +45,7 @@ export default function Clientes() {
   const fetchClientes = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('http://localhost:8000/api/clientes/');
+      const response = await axios.get('https://allison-django-main-c7mj.vercel.app/api/clientes/');
       setClientes(response.data);
       setIsLoading(false);
     } catch (error) {
@@ -115,11 +115,11 @@ export default function Clientes() {
     try {
       if (selectedCliente) {
         // Actualizar cliente existente
-        await axios.put(`http://localhost:8000/api/clientes/${selectedCliente.id}/`, formData);
+        await axios.put(`https://allison-django-main-c7mj.vercel.app/api/clientes/${selectedCliente.id}/`, formData);
         toast.success('Cliente actualizado correctamente');
       } else {
         // Crear nuevo cliente
-        await axios.post('http://localhost:8000/api/clientes/', formData);
+        await axios.post('https://allison-django-main-c7mj.vercel.app/api/clientes/', formData);
         toast.success('Cliente creado correctamente');
       }
       
@@ -135,7 +135,7 @@ export default function Clientes() {
   // Eliminar cliente
   const handleDeleteCliente = async (id: number) => {
     try {
-      await axios.delete(`http://localhost:8000/api/clientes/${id}/`);
+      await axios.delete(`https://allison-django-main-c7mj.vercel.app/api/clientes/${id}/`);
       toast.success('Cliente eliminado correctamente');
       fetchClientes();
     } catch (error) {

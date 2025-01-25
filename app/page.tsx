@@ -14,7 +14,7 @@ import { AlertCircle, LogOut } from 'lucide-react'
 // Configuración de axios para enviar credenciales
 axios.defaults.withCredentials = true
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://allison-django-main-c7mj.vercel.app/api'
 
 export default function AuthComponent() {
   const [username, setUsername] = useState('')
@@ -59,7 +59,7 @@ export default function AuthComponent() {
       if (response.data.success) {
         setUser(response.data.user)
          
-        router.push('http://localhost:3000/dashboard')
+        router.push('https://allison-nextjs-main.vercel.app/dashboard')
         
       }
     } catch (err) {

@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 188 81% 98%; /* Teal muy claro */
+    --foreground: 188 100% 10%; /* Teal casi negro */
+    --card: 188 70% 95%; /* Teal muy suave */
+    --card-foreground: 188 100% 10%; /* Teal casi negro */
+    --popover: 188 81% 98%; /* Teal muy claro */
+    --popover-foreground: 188 100% 10%; /* Teal casi negro */
+    --primary: 188 100% 20%; /* Teal oscuro profundo */
+    --primary-foreground: 0 0% 100%; /* Blanco */
+    --secondary: 188 80% 70%; /* Teal medio */
+    --secondary-foreground: 188 100% 10%; /* Teal casi negro */
+    --muted: 188 50% 90%; /* Teal muy suave */
+    --muted-foreground: 188 100% 20%; /* Teal oscuro */
+    --accent: 188 90% 60%; /* Teal brillante */
+    --accent-foreground: 188 100% 10%; /* Teal casi negro */
+    --destructive: 10 80% 60%; /* Rojo terracota para contraste */
+    --destructive-foreground: 0 0% 100%; /* Blanco */
+    --border: 188 50% 85%; /* Teal claro */
+    --input: 188 50% 80%; /* Teal muy claro */
+    --ring: 188 100% 20%; /* Teal oscuro profundo */
+    --chart-1: 188 100% 25%; /* Teal muy oscuro */
+    --chart-2: 188 90% 40%; /* Teal oscuro */
+    --chart-3: 188 80% 50%; /* Teal medio-oscuro */
+    --chart-4: 188 70% 60%; /* Teal medio */
+    --chart-5: 188 60% 70%; /* Teal claro */
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 188 100% 5%; /* Teal casi negro */
+    --foreground: 188 50% 95%; /* Teal muy claro */
+    --card: 188 100% 10%; /* Teal negro profundo */
+    --card-foreground: 188 50% 95%; /* Teal muy claro */
+    --popover: 188 100% 5%; /* Teal casi negro */
+    --popover-foreground: 188 50% 95%; /* Teal muy claro */
+    --primary: 188 100% 30%; /* Teal oscuro intenso */
+    --primary-foreground: 0 0% 100%; /* Blanco */
+    --secondary: 188 90% 40%; /* Teal oscuro */
+    --secondary-foreground: 188 50% 95%; /* Teal muy claro */
+    --muted: 188 100% 15%; /* Teal casi negro */
+    --muted-foreground: 188 50% 80%; /* Teal claro */
+    --accent: 188 100% 35%; /* Teal muy oscuro */
+    --accent-foreground: 188 50% 95%; /* Teal muy claro */
+    --destructive: 10 70% 40%; /* Rojo terracota oscuro */
+    --destructive-foreground: 0 0% 100%; /* Blanco */
+    --border: 188 100% 20%; /* Teal oscuro */
+    --input: 188 100% 15%; /* Teal casi negro */
+    --ring: 188 100% 40%; /* Teal oscuro brillante */
+    --chart-1: 188 100% 35%; /* Teal muy oscuro */
+    --chart-2: 188 90% 45%; /* Teal oscuro */
+    --chart-3: 188 80% 55%; /* Teal medio-oscuro */
+    --chart-4: 188 70% 65%; /* Teal medio */
+    --chart-5: 188 60% 75%; /* Teal claro */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

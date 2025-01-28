@@ -372,7 +372,7 @@ export default function NuevaVenta() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const producto = productos.find((p) => p.id === parseInt(values.producto));
+     const producto = productos.find((p) => p.id === parseInt(values.producto));
     const cliente = clientes.find((c) => c.id === parseInt(values.cliente));
     
     if (!producto || !cliente) return;
@@ -397,14 +397,14 @@ export default function NuevaVenta() {
       subtotal: producto.precio * cantidad,
     };
 
-    setItems([...items, nuevoItem]);
-    setSelectedCliente(cliente.id);
+     setItems([...items, nuevoItem]);
+    setSelectedCliente(cliente.id); // Update selected client when adding items
     form.reset({
       producto: "",
       cantidad: "",
+      cliente: cliente.id.toString(), // Keep the selected client in the form
     });
   }
-
   function eliminarItem(index: number) {
     const nuevosItems = items.filter((_, i) => i !== index);
     setItems(nuevosItems);
@@ -433,7 +433,7 @@ export default function NuevaVenta() {
     document.body.removeChild(link);
   };
 
-  async function finalizarVenta() {
+   async function finalizarVenta() {
     if (items.length === 0) {
       toast.error("Agregue al menos un producto");
       return;
@@ -445,25 +445,33 @@ export default function NuevaVenta() {
     }
 
     try {
-      const response = await axios.post('https://allison-django-main-4m3m.vercel.app/api/ventas/', {
+      const ventaData = {
         cliente: selectedCliente,
         items: items.map(item => ({
           producto: item.producto,
           cantidad: item.cantidad,
           precio_venta: item.precio_venta,
         })),
-      });
+      };
 
-      // Generar y descargar PDF
+      // Create the sale
+      const response = await axios.post('https://allison-django-main-4m3m.vercel.app/api/ventas/', ventaData);
+
+      // Generate and download PDF
       await generatePDF();
 
-      // Refrescar la lista de ventas
-      const ventasResponse = await axios.get('https://allison-django-main-4m3m.vercel.app/api/ventas/');
-      setVentas(ventasResponse.data);
+      // Update the local sales state with the new sale
+      const newVenta = {
+        ...response.data,
+        cliente: selectedCliente, // Ensure the selected client is associated
+      };
+      
+      setVentas(prevVentas => [...prevVentas, newVenta]);
 
       toast.success("Venta registrada con éxito");
-      setItems([]); // Limpiar items después de la venta
-      setSelectedCliente(null);
+      setItems([]); // Clear items after sale
+      form.reset(); // Reset the form
+      setSelectedCliente(null); // Reset selected client
     } catch (error: any) {
       if (error.response) {
         toast.error(error.response.data.detail || "Error al procesar la venta");
@@ -474,7 +482,6 @@ export default function NuevaVenta() {
       }
     }
   }
-
   const total = items.reduce((acc, item) => acc + item.subtotal, 0) * 1.15;
   const iva = items.reduce((acc, item) => acc + item.subtotal, 0) * 0.15;
 

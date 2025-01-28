@@ -371,11 +371,15 @@ export default function NuevaVenta() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-     const producto = productos.find((p) => p.id === parseInt(values.producto));
+   function onSubmit(values: z.infer<typeof formSchema>) {
+    const producto = productos.find((p) => p.id === parseInt(values.producto));
+    // Importante: Usamos el cliente del formulario
     const cliente = clientes.find((c) => c.id === parseInt(values.cliente));
     
-    if (!producto || !cliente) return;
+    if (!producto || !cliente) {
+      toast.error("Por favor seleccione un producto y un cliente");
+      return;
+    }
 
     const cantidad = parseInt(values.cantidad);
 
@@ -397,12 +401,15 @@ export default function NuevaVenta() {
       subtotal: producto.precio * cantidad,
     };
 
-     setItems([...items, nuevoItem]);
-    setSelectedCliente(cliente.id); // Update selected client when adding items
+    setItems([...items, nuevoItem]);
+    // Importante: Actualizamos el cliente seleccionado con el valor del formulario
+    setSelectedCliente(parseInt(values.cliente));
+    
+    // Solo reseteamos el producto y cantidad, mantenemos el cliente seleccionado
     form.reset({
       producto: "",
       cantidad: "",
-      cliente: cliente.id.toString(), // Keep the selected client in the form
+      cliente: values.cliente, // Mantenemos el cliente seleccionado
     });
   }
   function eliminarItem(index: number) {
@@ -433,7 +440,7 @@ export default function NuevaVenta() {
     document.body.removeChild(link);
   };
 
-   async function finalizarVenta() {
+  async function finalizarVenta() {
     if (items.length === 0) {
       toast.error("Agregue al menos un producto");
       return;
@@ -445,8 +452,9 @@ export default function NuevaVenta() {
     }
 
     try {
+      // Creamos el objeto de venta con el cliente seleccionado
       const ventaData = {
-        cliente: selectedCliente,
+        cliente: selectedCliente, // Usamos el cliente seleccionado
         items: items.map(item => ({
           producto: item.producto,
           cantidad: item.cantidad,
@@ -454,24 +462,28 @@ export default function NuevaVenta() {
         })),
       };
 
-      // Create the sale
+      console.log('Datos de venta a enviar:', ventaData); // Para debugging
+
       const response = await axios.post('https://allison-django-main-4m3m.vercel.app/api/ventas/', ventaData);
 
-      // Generate and download PDF
+      // Generamos y descargamos el PDF
       await generatePDF();
 
-      // Update the local sales state with the new sale
-      const newVenta = {
-        ...response.data,
-        cliente: selectedCliente, // Ensure the selected client is associated
-      };
-      
-      setVentas(prevVentas => [...prevVentas, newVenta]);
+      // Actualizamos el estado local con la venta nueva
+      const nuevaVenta = response.data;
+      setVentas(prevVentas => [...prevVentas, nuevaVenta]);
 
       toast.success("Venta registrada con éxito");
-      setItems([]); // Clear items after sale
-      form.reset(); // Reset the form
-      setSelectedCliente(null); // Reset selected client
+      
+      // Reseteamos todo el formulario y estados
+      setItems([]);
+      setSelectedCliente(null);
+      form.reset({
+        producto: "",
+        cantidad: "",
+        cliente: "",
+      });
+      
     } catch (error: any) {
       if (error.response) {
         toast.error(error.response.data.detail || "Error al procesar la venta");
@@ -496,80 +508,81 @@ export default function NuevaVenta() {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-              <FormField
-                  control={form.control}
-                  name="cliente"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Cliente</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-full justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value
-                                ? clientes.find(
-                                    (cliente) => cliente.id.toString() === field.value
-                                  )?.nombre
-                                : "Seleccionar cliente"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0">
-                          <div className="p-2">
-                            <input
-                              type="text"
-                              placeholder="Buscar cliente..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="w-full px-2 py-1 mb-2 border rounded"
-                            />
-                          </div>
-                          <div className="max-h-[300px] overflow-auto">
-                            {clientes
-                              .filter((cliente) =>
-                                cliente.nombre
-                                  .toLowerCase()
-                                  .includes(searchTerm.toLowerCase())
-                              )
-                              .map((cliente) => (
-                                <div
-                                  key={cliente.id}
-                                  className={cn(
-                                    "flex items-center p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                                    field.value === cliente.id.toString() &&
-                                      "bg-accent"
-                                  )}
-                                  onClick={() => {
-                                    form.setValue("cliente", cliente.id.toString());
-                                    setSearchTerm("");
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      field.value === cliente.id.toString()
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {cliente.nombre}
-                                </div>
-                              ))}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+               <FormField
+    control={form.control}
+    name="cliente"
+    render={({ field }) => (
+      <FormItem className="flex flex-col">
+        <FormLabel>Cliente</FormLabel>
+        <Popover>
+          <PopoverTrigger asChild>
+            <FormControl>
+              <Button
+                variant="outline"
+                role="combobox"
+                className={cn(
+                  "w-full justify-between",
+                  !field.value && "text-muted-foreground"
+                )}
+              >
+                {field.value
+                  ? clientes.find(
+                      (cliente) => cliente.id.toString() === field.value
+                    )?.nombre
+                  : "Seleccionar cliente"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </FormControl>
+          </PopoverTrigger>
+          <PopoverContent className="w-[300px] p-0">
+            <div className="p-2">
+              <input
+                type="text"
+                placeholder="Buscar cliente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-2 py-1 mb-2 border rounded"
+              />
+            </div>
+            <div className="max-h-[300px] overflow-auto">
+              {clientes
+                .filter((cliente) =>
+                  cliente.nombre
+                    .toLowerCase()
+                    .includes(searchTerm.toLowerCase())
+                )
+                .map((cliente) => (
+                  <div
+                    key={cliente.id}
+                    className={cn(
+                      "flex items-center p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                      field.value === cliente.id.toString() &&
+                        "bg-accent"
+                    )}
+                    onClick={() => {
+                      form.setValue("cliente", cliente.id.toString());
+                      setSelectedCliente(cliente.id); // Actualizamos selectedCliente aquí también
+                      setSearchTerm("");
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        field.value === cliente.id.toString()
+                          ? "opacity-100"
+                          : "opacity-0"
+                      )}
+                    />
+                    {cliente.nombre}
+                  </div>
+                ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
 
 
 <FormField

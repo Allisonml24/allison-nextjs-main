@@ -373,10 +373,9 @@ export default function NuevaVenta() {
 
    function onSubmit(values: z.infer<typeof formSchema>) {
     const producto = productos.find((p) => p.id === parseInt(values.producto));
-    // Importante: Usamos el cliente del formulario
-    const cliente = clientes.find((c) => c.id === parseInt(values.cliente));
+    const clienteId = parseInt(values.cliente);
     
-    if (!producto || !cliente) {
+    if (!producto || !clienteId) {
       toast.error("Por favor seleccione un producto y un cliente");
       return;
     }
@@ -402,15 +401,7 @@ export default function NuevaVenta() {
     };
 
     setItems([...items, nuevoItem]);
-    // Importante: Actualizamos el cliente seleccionado con el valor del formulario
-    setSelectedCliente(parseInt(values.cliente));
-    
-    // Solo reseteamos el producto y cantidad, mantenemos el cliente seleccionado
-    form.reset({
-      producto: "",
-      cantidad: "",
-      cliente: values.cliente, // Mantenemos el cliente seleccionado
-    });
+    setSelectedCliente(clienteId); // Actualizamos el cliente seleccionado como número
   }
   function eliminarItem(index: number) {
     const nuevosItems = items.filter((_, i) => i !== index);
@@ -440,7 +431,7 @@ export default function NuevaVenta() {
     document.body.removeChild(link);
   };
 
-  async function finalizarVenta() {
+   async function finalizarVenta() {
     if (items.length === 0) {
       toast.error("Agregue al menos un producto");
       return;
@@ -452,40 +443,44 @@ export default function NuevaVenta() {
     }
 
     try {
-      // Creamos el objeto de venta con el cliente seleccionado
+      // Log para debugging
+      console.log('Cliente seleccionado:', selectedCliente);
+      
       const ventaData = {
-        cliente: selectedCliente, // Usamos el cliente seleccionado
+        cliente: selectedCliente, // Aseguramos que se envíe como número
         items: items.map(item => ({
           producto: item.producto,
           cantidad: item.cantidad,
           precio_venta: item.precio_venta,
-        })),
+        }))
       };
 
-      console.log('Datos de venta a enviar:', ventaData); // Para debugging
+      // Log para verificar los datos antes de enviar
+      console.log('Datos a enviar a la API:', ventaData);
 
       const response = await axios.post('https://allison-django-main-4m3m.vercel.app/api/ventas/', ventaData);
+
+      // Log de la respuesta
+      console.log('Respuesta de la API:', response.data);
 
       // Generamos y descargamos el PDF
       await generatePDF();
 
-      // Actualizamos el estado local con la venta nueva
-      const nuevaVenta = response.data;
-      setVentas(prevVentas => [...prevVentas, nuevaVenta]);
+      // Actualizamos el estado local con la nueva venta incluyendo el cliente correcto
+      const nuevaVenta = {
+        ...response.data,
+        cliente: selectedCliente // Aseguramos que el cliente se mantenga correcto
+      };
 
+      setVentas(prevVentas => [...prevVentas, nuevaVenta]);
       toast.success("Venta registrada con éxito");
-      
-      // Reseteamos todo el formulario y estados
       setItems([]);
       setSelectedCliente(null);
-      form.reset({
-        producto: "",
-        cantidad: "",
-        cliente: "",
-      });
-      
+      form.reset();
     } catch (error: any) {
+      console.error('Error completo:', error);
       if (error.response) {
+        console.error('Error response:', error.response.data);
         toast.error(error.response.data.detail || "Error al procesar la venta");
       } else if (error.request) {
         toast.error("No se pudo conectar con el servidor");
@@ -553,18 +548,18 @@ export default function NuevaVenta() {
                 )
                 .map((cliente) => (
                   <div
-                    key={cliente.id}
-                    className={cn(
-                      "flex items-center p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                      field.value === cliente.id.toString() &&
-                        "bg-accent"
-                    )}
-                    onClick={() => {
-                      form.setValue("cliente", cliente.id.toString());
-                      setSelectedCliente(cliente.id); // Actualizamos selectedCliente aquí también
-                      setSearchTerm("");
-                    }}
-                  >
+    key={cliente.id}
+    className={cn(
+      "flex items-center p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+      field.value === cliente.id.toString() && "bg-accent"
+    )}
+    onClick={() => {
+      const clienteId = cliente.id;
+      form.setValue("cliente", clienteId.toString());
+      setSelectedCliente(clienteId); // Aseguramos que se guarde como número
+      setSearchTerm("");
+    }}
+  >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",

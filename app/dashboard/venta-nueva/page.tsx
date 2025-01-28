@@ -431,7 +431,8 @@ export default function NuevaVenta() {
     document.body.removeChild(link);
   };
 
-   async function finalizarVenta() {
+ 
+  async function finalizarVenta() {
     if (items.length === 0) {
       toast.error("Agregue al menos un producto");
       return;
@@ -443,11 +444,9 @@ export default function NuevaVenta() {
     }
 
     try {
-      // Log para debugging
-      console.log('Cliente seleccionado:', selectedCliente);
-      
+      // Creamos el objeto de venta con el cliente seleccionado
       const ventaData = {
-        cliente: selectedCliente, // Aseguramos que se envíe como número
+        cliente: selectedCliente,
         items: items.map(item => ({
           producto: item.producto,
           cantidad: item.cantidad,
@@ -456,31 +455,45 @@ export default function NuevaVenta() {
       };
 
       // Log para verificar los datos antes de enviar
-      console.log('Datos a enviar a la API:', ventaData);
+      console.log('Cliente seleccionado:', selectedCliente);
+      console.log('Datos a enviar:', ventaData);
 
-      const response = await axios.post('https://allison-django-main-4m3m.vercel.app/api/ventas/', ventaData);
+      // Enviar la solicitud con el tipo de contenido correcto
+      const response = await axios.post(
+        'https://allison-django-main-4m3m.vercel.app/api/ventas/', 
+        ventaData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
       // Log de la respuesta
       console.log('Respuesta de la API:', response.data);
 
-      // Generamos y descargamos el PDF
       await generatePDF();
 
-      // Actualizamos el estado local con la nueva venta incluyendo el cliente correcto
-      const nuevaVenta = {
+      // Actualizamos el estado local con la nueva venta
+      setVentas(prevVentas => [...prevVentas, {
         ...response.data,
-        cliente: selectedCliente // Aseguramos que el cliente se mantenga correcto
-      };
+        cliente: selectedCliente // Aseguramos que el cliente correcto se mantenga en el estado local
+      }]);
 
-      setVentas(prevVentas => [...prevVentas, nuevaVenta]);
       toast.success("Venta registrada con éxito");
       setItems([]);
       setSelectedCliente(null);
       form.reset();
+      
     } catch (error: any) {
       console.error('Error completo:', error);
+      console.error('Datos que causaron el error:', {
+        cliente: selectedCliente,
+        items: items
+      });
+      
       if (error.response) {
-        console.error('Error response:', error.response.data);
+        console.error('Error de la API:', error.response.data);
         toast.error(error.response.data.detail || "Error al procesar la venta");
       } else if (error.request) {
         toast.error("No se pudo conectar con el servidor");
@@ -489,6 +502,12 @@ export default function NuevaVenta() {
       }
     }
   }
+  const handleClienteSelect = (clienteId: string) => {
+    const numericId = parseInt(clienteId);
+    console.log('Cliente seleccionado:', numericId);
+    setSelectedCliente(numericId);
+    form.setValue("cliente", clienteId);
+  };
   const total = items.reduce((acc, item) => acc + item.subtotal, 0) * 1.15;
   const iva = items.reduce((acc, item) => acc + item.subtotal, 0) * 0.15;
 
@@ -547,19 +566,17 @@ export default function NuevaVenta() {
                     .includes(searchTerm.toLowerCase())
                 )
                 .map((cliente) => (
-                  <div
-    key={cliente.id}
-    className={cn(
-      "flex items-center p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer",
-      field.value === cliente.id.toString() && "bg-accent"
-    )}
-    onClick={() => {
-      const clienteId = cliente.id;
-      form.setValue("cliente", clienteId.toString());
-      setSelectedCliente(clienteId); // Aseguramos que se guarde como número
-      setSearchTerm("");
-    }}
-  >
+                   <div
+      key={cliente.id}
+      className={cn(
+        "flex items-center p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+        field.value === cliente.id.toString() && "bg-accent"
+      )}
+      onClick={() => {
+        handleClienteSelect(cliente.id.toString());
+        setSearchTerm("");
+      }}
+    >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",

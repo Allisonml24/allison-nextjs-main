@@ -46,7 +46,7 @@ export default function Proveedores() {
   const fetchProveedores = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('https://allison-django-main-4m3m.vercel.app/api/proveedores/');
+      const response = await axios.get('https://allison-django-main-gmgm.vercel.app/api/proveedores/');
       setProveedores(response.data);
       setIsLoading(false);
     } catch (error) {
@@ -125,11 +125,11 @@ export default function Proveedores() {
       try {
         if (selectedProveedor) {
           // Actualizar proveedor existente
-          await axios.put(`https://allison-django-main-4m3m.vercel.app/api/proveedores/${selectedProveedor.id}/`, formData);
+          await axios.put(`https://allison-django-main-gmgm.vercel.app/api/proveedores/${selectedProveedor.id}/`, formData);
           toast.success('Proveedor actualizado correctamente');
         } else {
           // Crear nuevo proveedor
-          await axios.post('https://allison-django-main-4m3m.vercel.app/api/proveedores/', formData);
+          await axios.post('https://allison-django-main-gmgm.vercel.app/api/proveedores/', formData);
           toast.success('Proveedor creado correctamente');
         }
         
@@ -146,7 +146,7 @@ export default function Proveedores() {
   // Eliminar proveedor
   const handleDeleteProveedor = async (id: number) => {
     try {
-      await axios.delete(`https://allison-django-main-4m3m.vercel.app/api/proveedores/${id}/`);
+      await axios.delete(`https://allison-django-main-gmgm.vercel.app/api/proveedores/${id}/`);
       toast.success('Proveedor eliminado correctamente');
       fetchProveedores();
     } catch (error) {

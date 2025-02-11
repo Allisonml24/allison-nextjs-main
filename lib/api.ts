@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://allison-django-main-4m3m.vercel.app/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://allison-django-main-gmgm.vercel.app/api';
 
 export const api = axios.create({
   baseURL: API_URL,

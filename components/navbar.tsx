@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
-const API_BASE_URL = "https://allison-django-main-4m3m.vercel.app";
+const API_BASE_URL = "https://allison-django-main-gmgm.vercel.app";
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme();

@@ -2,7 +2,7 @@
 import useSWR from 'swr';
 import axios from 'axios';
 
-const API_URL = 'https://allison-django-main-4m3m.vercel.app/api/productos/';
+const API_URL = 'https://allison-django-main-gmgm.vercel.app/api/productos/';
 
 const fetcher = (url: string) => 
   axios.get(url).then(response => response.data);

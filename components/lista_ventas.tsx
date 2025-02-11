@@ -18,7 +18,7 @@ export function VentasComponent() {
   // Función para cargar ventas desde la API
   const cargarVentas = async () => {
     try {
-      const response = await axios.get('https://allison-django-main-4m3m.vercel.app/api/ventas/');
+      const response = await axios.get('https://allison-django-main-gmgm.vercel.app/api/ventas/');
       setVentas(response.data);
     } catch (error) {
       console.error('Error al cargar ventas:', error);

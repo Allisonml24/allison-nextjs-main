@@ -371,11 +371,14 @@ export default function NuevaVenta() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+   function onSubmit(values: z.infer<typeof formSchema>) {
     const producto = productos.find((p) => p.id === parseInt(values.producto));
-    const cliente = clientes.find((c) => c.id === parseInt(values.cliente));
+    const clienteId = parseInt(values.cliente);
     
-    if (!producto || !cliente) return;
+    if (!producto || !clienteId) {
+      toast.error("Por favor seleccione un producto y un cliente");
+      return;
+    }
 
     const cantidad = parseInt(values.cantidad);
 
@@ -398,13 +401,8 @@ export default function NuevaVenta() {
     };
 
     setItems([...items, nuevoItem]);
-    setSelectedCliente(cliente.id);
-    form.reset({
-      producto: "",
-      cantidad: "",
-    });
+    setSelectedCliente(clienteId); // Actualizamos el cliente seleccionado como número
   }
-
   function eliminarItem(index: number) {
     const nuevosItems = items.filter((_, i) => i !== index);
     setItems(nuevosItems);
@@ -433,6 +431,7 @@ export default function NuevaVenta() {
     document.body.removeChild(link);
   };
 
+ 
   async function finalizarVenta() {
     if (items.length === 0) {
       toast.error("Agregue al menos un producto");
@@ -445,27 +444,66 @@ export default function NuevaVenta() {
     }
 
     try {
+<<<<<<< HEAD
       const response = await axios.post('https://allison-django-main-gmgm.vercel.app/api/ventas/', {
+=======
+      // Creamos el objeto de venta con el cliente seleccionado
+      const ventaData = {
+>>>>>>> 6d026890b505cb0272440720978e754fa97d514a
         cliente: selectedCliente,
         items: items.map(item => ({
           producto: item.producto,
           cantidad: item.cantidad,
           precio_venta: item.precio_venta,
-        })),
-      });
+        }))
+      };
 
-      // Generar y descargar PDF
+      // Log para verificar los datos antes de enviar
+      console.log('Cliente seleccionado:', selectedCliente);
+      console.log('Datos a enviar:', ventaData);
+
+      // Enviar la solicitud con el tipo de contenido correcto
+      const response = await axios.post(
+        'https://allison-django-main-4m3m.vercel.app/api/ventas/', 
+        ventaData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // Log de la respuesta
+      console.log('Respuesta de la API:', response.data);
+
       await generatePDF();
 
+<<<<<<< HEAD
       // Refrescar la lista de ventas
       const ventasResponse = await axios.get('https://allison-django-main-gmgm.vercel.app/api/ventas/');
       setVentas(ventasResponse.data);
+=======
+      // Actualizamos el estado local con la nueva venta
+      setVentas(prevVentas => [...prevVentas, {
+        ...response.data,
+        cliente: selectedCliente // Aseguramos que el cliente correcto se mantenga en el estado local
+      }]);
+>>>>>>> 6d026890b505cb0272440720978e754fa97d514a
 
       toast.success("Venta registrada con éxito");
-      setItems([]); // Limpiar items después de la venta
+      setItems([]);
       setSelectedCliente(null);
+      form.reset();
+      
     } catch (error: any) {
+      console.error('Error completo:', error);
+      console.error('Datos que causaron el error:', {
+        cliente: selectedCliente,
+        items: items
+      });
+      
       if (error.response) {
+        console.error('Error de la API:', error.response.data);
         toast.error(error.response.data.detail || "Error al procesar la venta");
       } else if (error.request) {
         toast.error("No se pudo conectar con el servidor");
@@ -474,7 +512,12 @@ export default function NuevaVenta() {
       }
     }
   }
-
+  const handleClienteSelect = (clienteId: string) => {
+    const numericId = parseInt(clienteId);
+    console.log('Cliente seleccionado:', numericId);
+    setSelectedCliente(numericId);
+    form.setValue("cliente", clienteId);
+  };
   const total = items.reduce((acc, item) => acc + item.subtotal, 0) * 1.15;
   const iva = items.reduce((acc, item) => acc + item.subtotal, 0) * 0.15;
 
@@ -489,80 +532,79 @@ export default function NuevaVenta() {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-              <FormField
-                  control={form.control}
-                  name="cliente"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Cliente</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-full justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value
-                                ? clientes.find(
-                                    (cliente) => cliente.id.toString() === field.value
-                                  )?.nombre
-                                : "Seleccionar cliente"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0">
-                          <div className="p-2">
-                            <input
-                              type="text"
-                              placeholder="Buscar cliente..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="w-full px-2 py-1 mb-2 border rounded"
-                            />
-                          </div>
-                          <div className="max-h-[300px] overflow-auto">
-                            {clientes
-                              .filter((cliente) =>
-                                cliente.nombre
-                                  .toLowerCase()
-                                  .includes(searchTerm.toLowerCase())
-                              )
-                              .map((cliente) => (
-                                <div
-                                  key={cliente.id}
-                                  className={cn(
-                                    "flex items-center p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                                    field.value === cliente.id.toString() &&
-                                      "bg-accent"
-                                  )}
-                                  onClick={() => {
-                                    form.setValue("cliente", cliente.id.toString());
-                                    setSearchTerm("");
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      field.value === cliente.id.toString()
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {cliente.nombre}
-                                </div>
-                              ))}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+               <FormField
+    control={form.control}
+    name="cliente"
+    render={({ field }) => (
+      <FormItem className="flex flex-col">
+        <FormLabel>Cliente</FormLabel>
+        <Popover>
+          <PopoverTrigger asChild>
+            <FormControl>
+              <Button
+                variant="outline"
+                role="combobox"
+                className={cn(
+                  "w-full justify-between",
+                  !field.value && "text-muted-foreground"
+                )}
+              >
+                {field.value
+                  ? clientes.find(
+                      (cliente) => cliente.id.toString() === field.value
+                    )?.nombre
+                  : "Seleccionar cliente"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </FormControl>
+          </PopoverTrigger>
+          <PopoverContent className="w-[300px] p-0">
+            <div className="p-2">
+              <input
+                type="text"
+                placeholder="Buscar cliente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-2 py-1 mb-2 border rounded"
+              />
+            </div>
+            <div className="max-h-[300px] overflow-auto">
+              {clientes
+                .filter((cliente) =>
+                  cliente.nombre
+                    .toLowerCase()
+                    .includes(searchTerm.toLowerCase())
+                )
+                .map((cliente) => (
+                   <div
+      key={cliente.id}
+      className={cn(
+        "flex items-center p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+        field.value === cliente.id.toString() && "bg-accent"
+      )}
+      onClick={() => {
+        handleClienteSelect(cliente.id.toString());
+        setSearchTerm("");
+      }}
+    >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        field.value === cliente.id.toString()
+                          ? "opacity-100"
+                          : "opacity-0"
+                      )}
+                    />
+                    {cliente.nombre}
+                  </div>
+                ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
 
 
 <FormField

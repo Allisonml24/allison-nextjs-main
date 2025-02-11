@@ -16,7 +16,7 @@ export const createProducto = (data: any) => api.post('/productos/', data).then(
 export const updateProducto = (id: string, data: any) => api.put(`/productos/${id}/`, data).then(res => res.data);
 export const deleteProducto = (id: string) => api.delete(`/productos/${id}/`).then(res => res.data);
 
-// Ventas
+// Ventass
 export const getVentas = () => api.get('/ventas/').then(res => res.data);
 export const createVenta = (data: any) => api.post('/ventas/', data).then(res => res.data);
 export const getVentaDetalle = (id: string) => api.get(`/ventas/${id}/`).then(res => res.data);

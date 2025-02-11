@@ -475,7 +475,7 @@ export default function NuevaCompra() {
                   <div key={compra.id} className="border rounded-lg p-4">
                     <div className="flex justify-between items-center mb-4">
                       <div>
-                        <span className="font-medium text-lg">Compra #{compra.id}</span>
+                        <span className="font-medium text-lg">Compra #N{compra.id}</span>
                         <div className="text-sm text-muted-foreground">
                           Fecha: {new Date(compra.fecha).toLocaleDateString()}
                         </div>

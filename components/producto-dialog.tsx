@@ -290,18 +290,7 @@ export function ProductoDialog({
             />
             {errors.precio && <p className="text-red-500">{errors.precio}</p>}
           </div>
-          <div>
-            <Label>Stock</Label>
-            <Input
-              name="stock"
-              type="number"
-              value={formData.stock}
-              onChange={handleChange}
-              required
-              placeholder="Cantidad en inventario"
-            />
-            {errors.stock && <p className="text-red-500">{errors.stock}</p>}
-          </div>
+          
           <div>
             <Label>Categoría</Label>
             <Select

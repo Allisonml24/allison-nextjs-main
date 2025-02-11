@@ -1,5 +1,5 @@
 "use client";
-
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -8,6 +8,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,15 +16,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+import { CarTaxiFrontIcon, CheckIcon, Trash2Icon, Loader2Icon } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
+import { toast } from "sonner";
 import {
   Command,
   CommandEmpty,
@@ -33,20 +34,16 @@ import {
   CommandList,
 } from "@/components/ui/command";
 
-// Validation schema remains the same
-const formSchema = z.object({
-  producto: z.string().min(1, "Seleccione un producto"),
-  proveedor: z.string().min(1, "Seleccione un proveedor"),
-  cantidad: z.string().min(1, "Ingrese una cantidad"),
-  precioCompra: z.string().min(1, "Ingrese el precio de compra"),
-});
-
-// Interfaces remain the same
+// Interfaces
 interface Producto {
   id: number;
   codigo: string;
   nombre: string;
   stock: number;
+  descripcion: string;
+  precio: number;
+  categoria: number;
+  proveedor: number;
 }
 
 interface Proveedor {
@@ -56,6 +53,8 @@ interface Proveedor {
 
 interface CompraItem {
   producto: number;
+  nombre?: string;
+  codigo?: string;
   cantidad: number;
   precio_compra: number;
   subtotal: number;
@@ -69,38 +68,32 @@ interface Compra {
   total: number;
 }
 
+// Validation Schema
+const formSchema = z.object({
+  producto: z.string().min(1, "Seleccione un producto"),
+  proveedor: z.string().min(1, "Seleccione un proveedor"),
+  cantidad: z.string().min(1, "Ingrese una cantidad").refine(
+    (val) => !isNaN(Number(val)) && Number(val) > 0,
+    "La cantidad debe ser mayor a 0"
+  ),
+  precioCompra: z.string().min(1, "Ingrese el precio de compra").refine(
+    (val) => !isNaN(Number(val)) && Number(val) > 0,
+    "El precio debe ser mayor a 0"
+  ),
+});
+
+const API_BASE_URL = "https://allison-django-main-d27e.vercel.app/api";
+
 export default function NuevaCompra() {
-  const router = useRouter();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [compras, setCompras] = useState<Compra[]>([]);
   const [items, setItems] = useState<CompraItem[]>([]);
   const [selectedProveedor, setSelectedProveedor] = useState<number | null>(null);
-  const [compras, setCompras] = useState<Compra[]>([]);
-  
-  // Fetch data remains the same
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [productosResponse, proveedoresResponse, comprasResponse] = await Promise.all([
-          axios.get('https://allison-django-main-gmgm.vercel.app/api/productos/'),
-          axios.get('https://allison-django-main-gmgm.vercel.app/api/proveedores/'),
-          axios.get('https://allison-django-main-gmgm.vercel.app/api/compras/')
-        ]);
-        
-        setProductos(productosResponse.data);
-        setProveedores(proveedoresResponse.data);
-        setCompras(comprasResponse.data);
-        setIsLoading(false);
-      } catch (error) {
-        toast.error("Error al cargar datos");
-        setIsLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form configuration remains the same
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -111,41 +104,67 @@ export default function NuevaCompra() {
     },
   });
 
-  // Submission function remains the same
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const producto = productos.find((p) => p.id === parseInt(values.producto));
-    const proveedor = proveedores.find((p) => p.id === parseInt(values.proveedor));
-    
-    if (!producto || !proveedor) return;
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [productosRes, proveedoresRes, comprasRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/productos/`),
+          axios.get(`${API_BASE_URL}/proveedores/`),
+          axios.get(`${API_BASE_URL}/compras/`)
+        ]);
+        
+        setProductos(productosRes.data);
+        setProveedores(proveedoresRes.data);
+        setCompras(comprasRes.data);
+        setIsLoading(false);
+      } catch (error) {
+        toast.error("Error al cargar los datos iniciales");
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const filteredProducts = useMemo(() => {
+    return productos.filter(p => 
+      p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, productos]);
+
+  const removeItem = (index: number) => {
+    setItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    const producto = productos.find(p => p.id === parseInt(values.producto));
+    if (!producto) return;
 
     const cantidad = parseInt(values.cantidad);
     const precioCompra = parseFloat(values.precioCompra);
+    
     const nuevoItem: CompraItem = {
       producto: producto.id,
+      nombre: producto.nombre,
+      codigo: producto.codigo,
       cantidad,
       precio_compra: precioCompra,
       subtotal: precioCompra * cantidad,
     };
 
-    setItems([...items, nuevoItem]);
-    setSelectedProveedor(proveedor.id);
+    setItems(prev => [...prev, nuevoItem]);
     form.reset();
-  }
+  };
 
-  // Finalize purchase function remains the same
-  async function finalizarCompra() {
-    if (items.length === 0) {
-      toast.error("Agregue al menos un producto");
+  const finalizarCompra = async () => {
+    if (items.length === 0 || !selectedProveedor) {
+      toast.error("Debe agregar productos y seleccionar un proveedor");
       return;
     }
 
-    if (!selectedProveedor) {
-      toast.error("Debe seleccionar un proveedor");
-      return;
-    }
-
+    setIsSubmitting(true);
     try {
-      const response = await axios.post('https://allison-django-main-gmgm.vercel.app/api/compras/', {
+      const response = await axios.post(`${API_BASE_URL}/compras/`, {
         proveedor: selectedProveedor,
         items: items.map(item => ({
           producto: item.producto,
@@ -154,141 +173,151 @@ export default function NuevaCompra() {
         })),
       });
 
-      const comprasResponse = await axios.get('https://allison-django-main-gmgm.vercel.app/api/compras/');
-      setCompras(comprasResponse.data);
-
-      toast.success("Compra registrada con éxito");
+      const comprasRes = await axios.get(`${API_BASE_URL}/compras/`);
+      setCompras(comprasRes.data);
+      
       setItems([]);
       setSelectedProveedor(null);
+      form.reset();
+      toast.success("Compra registrada exitosamente");
     } catch (error: any) {
-      if (error.response) {
-        toast.error(error.response.data.detail || "Error al procesar la compra");
-      } else if (error.request) {
-        toast.error("No se pudo conectar con el servidor");
-      } else {
-        toast.error("Error al procesar la compra");
-      }
+      toast.error(error.response?.data?.detail || "Error al procesar la compra");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const subtotal = items.reduce((acc, item) => acc + item.subtotal, 0);
+  const iva = subtotal * 0.15;
+  const total = subtotal + iva;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2Icon className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
-  // Total calculations remain the same
-  const total = items.reduce((acc, item) => acc + item.subtotal, 0)*1.15;
-  const iva = items.reduce((acc, item) => acc + item.subtotal, 0)*0.15;
-
-  // Loading state remains the same
-  if (isLoading) return <div>Cargando...</div>;
-
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Nueva Compra</h1>
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Nueva Compra</h1>
+        <Badge variant="outline" className="text-lg py-1">
+          Compra #{compras.length + 1}
+        </Badge>
+      </div>
 
-      <div className="grid gap-8">
-        <Card className="p-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Proveedor Popover */}
-                <FormField
-                  control={form.control}
-                  name="proveedor"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Proveedor</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-full justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value
-                                ? proveedores.find(
-                                    (proveedor) => proveedor.id.toString() === field.value
-                                  )?.nombre
-                                : "Seleccionar proveedor"}
-                              <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0">
-                          <Command>
-                            <CommandInput placeholder="Buscar proveedor..." />
-                            <CommandList>
-                              <CommandEmpty>No se encontraron proveedores</CommandEmpty>
-                              <CommandGroup>
-                                {proveedores.map((proveedor) => (
-                                  <CommandItem
-                                    value={proveedor.nombre}
-                                    key={proveedor.id}
-                                    onSelect={() => {
-                                      form.setValue("proveedor", proveedor.id.toString());
-                                    }}
-                                  >
-                                    <CheckIcon
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        proveedor.id.toString() === field.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                    {proveedor.nombre}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                  )}
-                />
+      <Card className="p-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="proveedor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Proveedor</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? proveedores.find(
+                                  (proveedor) => proveedor.id.toString() === field.value
+                                )?.nombre
+                              : "Seleccionar proveedor"}
+                            <CarTaxiFrontIcon className="h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Buscar proveedor..." />
+                          <CommandList>
+                            <CommandEmpty>No se encontraron proveedores</CommandEmpty>
+                            <CommandGroup>
+                              {proveedores.map((proveedor) => (
+                                <CommandItem
+                                  key={proveedor.id}
+                                  value={proveedor.nombre}
+                                  onSelect={() => {
+                                    form.setValue("proveedor", proveedor.id.toString());
+                                    setSelectedProveedor(proveedor.id);
+                                  }}
+                                >
+                                  <CheckIcon
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      proveedor.id.toString() === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {proveedor.nombre}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                {/* Producto Popover */}
-                <FormField
-                  control={form.control}
-                  name="producto"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Producto</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-full justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value
-                                ? productos.find(
-                                    (producto) => producto.id.toString() === field.value
-                                  )?.nombre
-                                : "Seleccionar producto"}
-                              <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0">
-                          <Command>
-                            <CommandInput placeholder="Buscar producto..." />
-                            <CommandList>
-                              <CommandEmpty>No se encontraron productos</CommandEmpty>
-                              <CommandGroup>
-                                {productos.map((producto) => (
-                                  <CommandItem
-                                    value={producto.nombre}
-                                    key={producto.id}
-                                    onSelect={() => {
-                                      form.setValue("producto", producto.id.toString());
-                                    }}
-                                  >
+              <FormField
+                control={form.control}
+                name="producto"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Producto</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? productos.find(
+                                  (producto) => producto.id.toString() === field.value
+                                )?.nombre
+                              : "Seleccionar producto"}
+                            <CarTaxiFrontIcon className="h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Buscar por nombre o código..." 
+                            onValueChange={setSearchTerm}
+                          />
+                          <CommandList>
+                            <CommandEmpty>No se encontraron productos</CommandEmpty>
+                            <CommandGroup>
+                              {filteredProducts.map((producto) => (
+                                <CommandItem
+                                  key={producto.id}
+                                  value={producto.nombre}
+                                  onSelect={() => {
+                                    form.setValue("producto", producto.id.toString());
+                                  }}
+                                >
+                                  <div className="flex items-center">
                                     <CheckIcon
                                       className={cn(
                                         "mr-2 h-4 w-4",
@@ -297,125 +326,187 @@ export default function NuevaCompra() {
                                           : "opacity-0"
                                       )}
                                     />
-                                    {producto.nombre}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                  )}
-                />
+                                    <div>
+                                      <div>{producto.nombre}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        Código: {producto.codigo} | Stock: {producto.stock}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="cantidad"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cantidad</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="precioCompra"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Precio de Compra</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="0" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Button type="submit" className="w-full">
+              Agregar a la compra
+            </Button>
+          </form>
+        </Form>
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Resumen de compra</h2>
+        {items.length === 0 ? (
+          <Alert>
+            <AlertDescription className="text-center py-4">
+              No hay productos agregados a la compra
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="space-y-6">
+            <div className="rounded-lg border">
+              <div className="grid grid-cols-6 gap-4 p-4 font-medium bg-muted border-b">
+                <div className="col-span-2">Producto</div>
+                <div className="text-right">Cantidad</div>
+                <div className="text-right">Precio</div>
+                <div className="text-right">Subtotal</div>
+                <div></div>
               </div>
-
-             {/* Rest of the form remains the same */}
-             <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="cantidad"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cantidad</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="precioCompra"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Precio de Compra</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" step="0.01" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Button type="submit" className="w-full">
-                Agregar a la compra
-              </Button>
-            </form>
-          </Form>
-        </Card>
-
-        {/* Resumen de Compra */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Resumen de compra</h2>
-          {items.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No hay productos agregados
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {items.map((item, index) => {
-                const producto = productos.find((p) => p.id === item.producto);
-                return (
-                  <div key={index} className="flex justify-between items-center">
-                    <div>
-                      <span>{producto?.nombre} x {item.cantidad}</span>
+              <div className="divide-y">
+                {items.map((item, index) => (
+                  <div key={index} className="grid grid-cols-6 gap-4 p-4 items-center">
+                    <div className="col-span-2">
+                      <div>{item.nombre}</div>
+                      <div className="text-sm text-muted-foreground">
+                        Código: {item.codigo}
+                      </div>
                     </div>
-                    <div>
-                      <span>${item.subtotal.toFixed(2)}</span>
+                    <div className="text-right">{item.cantidad}</div>
+                    <div className="text-right">${item.precio_compra}</div>
+                    <div className="text-right">${item.subtotal}</div>
+                    <div className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeItem(index)}
+                      >
+                        <Trash2Icon className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                );
-              })}
-               <div className="flex justify-between font-bold">
-                <span>IVA</span>
-                <span>${iva.toFixed(2)}</span>
+                ))}
+                </div>
               </div>
-              <div className="flex justify-between font-bold">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+  
+              <div className="flex flex-col gap-2 items-end">
+                <div className="grid grid-cols-2 gap-8 text-sm">
+                  <div className="text-muted-foreground">Subtotal:</div>
+                  <div className="text-right">${subtotal}</div>
+                  <div className="text-muted-foreground">IVA (15%):</div>
+                  <div className="text-right">${iva}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-8 text-lg font-bold border-t pt-2">
+                  <div>Total:</div>
+                  <div className="text-right">${total}</div>
+                </div>
               </div>
+  
+              <Button 
+                className="w-full"
+                onClick={finalizarCompra}
+                disabled={items.length === 0 || !selectedProveedor || isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  'Finalizar Compra'
+                )}
+              </Button>
             </div>
           )}
-          <Button onClick={finalizarCompra} className="w-full mt-4">
-            Finalizar Compra
-          </Button>
         </Card>
-
-        {/* Lista de Compras */}
+  
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Historial de Compras</h2>
           {compras.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No hay compras registradas
-            </p>
+            <Alert>
+              <AlertDescription className="text-center py-4">
+                No hay compras registradas
+              </AlertDescription>
+            </Alert>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {compras.map((compra) => {
                 const proveedor = proveedores.find((p) => p.id === compra.proveedor);
+                
                 return (
-                  <div key={compra.id} className="border-b pb-4">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Compra #{compra.id}</span>
-                      <span>{new Date(compra.fecha).toLocaleDateString()}</span>
+                  <div key={compra.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <span className="font-medium text-lg">Compra #{compra.id}</span>
+                        <div className="text-sm text-muted-foreground">
+                          Fecha: {new Date(compra.fecha).toLocaleDateString()}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Proveedor: {proveedor?.nombre}
+                        </div>
+                      </div>
+                      <Badge variant="outline">
+                        ${Number(compra.total)}
+                      </Badge>
                     </div>
-                    <div className="text-muted-foreground">
-                      Proveedor: {proveedor?.nombre}
-                    </div>
-                    <div className="mt-2">
-                      {compra.items.map((item, index) => {
-                        const producto = productos.find((p) => p.id === item.producto);
-                        return (
-                          <div key={index} className="flex justify-between">
-                           
-                          
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex justify-end mt-2 font-bold">
-                      <span>Total: ${Number(compra.total).toFixed(2)}</span>
+                    
+                    
+  
+                   
+  
+                    <div className="flex justify-end mt-4 pt-2 border-t">
+                      <div className="space-y-1 text-sm">
+                        <div className="text-muted-foreground">
+                          <span className="inline-block w-24">Subtotal:</span>
+                          <span>${(Number(compra.total) / 1.15)}</span>
+                        </div>
+                        <div className="text-muted-foreground">
+                          <span className="inline-block w-24">IVA (15%):</span>
+                          <span>${(Number(compra.total) - (Number(compra.total) / 1.15))}</span>
+                        </div>
+                        <div className="font-medium">
+                          <span className="inline-block w-24">Total:</span>
+                          <span>${Number(compra.total)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -424,6 +515,5 @@ export default function NuevaCompra() {
           )}
         </Card>
       </div>
-    </div>
-  );
-}
+    );
+  }

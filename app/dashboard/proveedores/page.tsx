@@ -1,4 +1,3 @@
-// app/proveedores/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Trash2, Edit } from "lucide-react";
+import { PlusCircle, Trash2, Edit, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import axios from 'axios';
@@ -26,6 +25,8 @@ import axios from 'axios';
 export default function Proveedores() {
   // Estados
   const [proveedores, setProveedores] = useState([]);
+  const [filteredProveedores, setFilteredProveedores] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedProveedor, setSelectedProveedor] = useState<any>(null);
@@ -46,8 +47,9 @@ export default function Proveedores() {
   const fetchProveedores = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('https://allison-django-main-gmgm.vercel.app/api/proveedores/');
+      const response = await axios.get('https://allison-django-main-d27e.vercel.app/api/proveedores/');
       setProveedores(response.data);
+      setFilteredProveedores(response.data);
       setIsLoading(false);
     } catch (error) {
       console.error('Error al obtener proveedores:', error);
@@ -61,10 +63,23 @@ export default function Proveedores() {
     fetchProveedores();
   }, []);
 
+  // Función de búsqueda
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    const lowercaseQuery = query.toLowerCase();
+    const filtered = proveedores.filter((proveedor: any) =>
+      (proveedor.nombre?.toLowerCase() || '').includes(lowercaseQuery) ||
+      (proveedor.empresa?.toLowerCase() || '').includes(lowercaseQuery) ||
+      (proveedor.email?.toLowerCase() || '').includes(lowercaseQuery) ||
+      (proveedor.telefono || '').includes(query)
+    );
+    setFilteredProveedores(filtered);
+  };
+
+
   // Manejar apertura de diálogo
   const handleOpenDialog = (proveedor?: any) => {
     if (proveedor) {
-      // Editar proveedor existente
       setSelectedProveedor(proveedor);
       setFormData({
         nombre: proveedor.nombre,
@@ -74,7 +89,6 @@ export default function Proveedores() {
         direccion: proveedor.direccion
       });
     } else {
-      // Nuevo proveedor
       setSelectedProveedor(null);
       setFormData({
         nombre: '',
@@ -124,16 +138,13 @@ export default function Proveedores() {
     if (validateNombre(formData.nombre) && validateEmpresa(formData.empresa) && validateTelefono(formData.telefono)) {
       try {
         if (selectedProveedor) {
-          // Actualizar proveedor existente
-          await axios.put(`https://allison-django-main-gmgm.vercel.app/api/proveedores/${selectedProveedor.id}/`, formData);
+          await axios.put(`https://allison-django-main-d27e.vercel.app/api/proveedores/${selectedProveedor.id}/`, formData);
           toast.success('Proveedor actualizado correctamente');
         } else {
-          // Crear nuevo proveedor
-          await axios.post('https://allison-django-main-gmgm.vercel.app/api/proveedores/', formData);
+          await axios.post('https://allison-django-main-d27e.vercel.app/api/proveedores/', formData);
           toast.success('Proveedor creado correctamente');
         }
         
-        // Cerrar diálogo y recargar lista
         setOpenDialog(false);
         fetchProveedores();
       } catch (error) {
@@ -146,7 +157,7 @@ export default function Proveedores() {
   // Eliminar proveedor
   const handleDeleteProveedor = async (id: number) => {
     try {
-      await axios.delete(`https://allison-django-main-gmgm.vercel.app/api/proveedores/${id}/`);
+      await axios.delete(`https://allison-django-main-d27e.vercel.app/api/proveedores/${id}/`);
       toast.success('Proveedor eliminado correctamente');
       fetchProveedores();
     } catch (error) {
@@ -165,6 +176,17 @@ export default function Proveedores() {
         </Button>
       </div>
 
+      {/* Buscador */}
+      <div className="relative">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nombre, empresa, email o teléfono..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="pl-8"
+        />
+      </div>
+
       {isLoading ? (
         <div className="text-center">Cargando proveedores...</div>
       ) : (
@@ -181,7 +203,7 @@ export default function Proveedores() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {proveedores.map((proveedor: any) => (
+              {filteredProveedores.map((proveedor: any) => (
                 <TableRow key={proveedor.id}>
                   <TableCell>{proveedor.nombre}</TableCell>
                   <TableCell>{proveedor.empresa}</TableCell>

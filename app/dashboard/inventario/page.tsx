@@ -1,7 +1,7 @@
-// app/inventario/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -11,10 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useProductos, deleteProducto } from "@/hooks/useProductos";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, Search } from "lucide-react";
 import { ProductoDialog } from "@/components/producto-dialog";
 import { useState, useEffect } from "react";
-import { toast } from "sonner"; // Opcional: para mostrar notificaciones
+import { toast } from "sonner";
 import axios from 'axios';
 
 export default function Inventario() {
@@ -22,6 +22,7 @@ export default function Inventario() {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [categorias, setCategorias] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleEdit = (producto: any) => {
     setSelectedProduct(producto);
@@ -31,7 +32,7 @@ export default function Inventario() {
   const handleDelete = async (id: number) => {
     try {
       await deleteProducto(id);
-      mutate(); // Revalidar la lista de productos
+      mutate();
       toast.success('Producto eliminado correctamente');
     } catch (error) {
       console.error('Error al eliminar producto:', error);
@@ -42,7 +43,7 @@ export default function Inventario() {
   useEffect(() => {
     const obtenerCategorias = async () => {
       try {
-        const response = await axios.get('https://allison-django-main-gmgm.vercel.app/api/categorias');
+        const response = await axios.get('https://allison-django-main-d27e.vercel.app/api/categorias');
         setCategorias(response.data);
       } catch (error) {
         console.error('Error al obtener categorias:', error);
@@ -50,6 +51,15 @@ export default function Inventario() {
     };
     obtenerCategorias();
   }, []);
+
+  // Filter products based on search term
+  const filteredProducts = productos?.filter((producto: any) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      producto.nombre.toLowerCase().includes(searchLower) ||
+      producto.codigo.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -66,6 +76,18 @@ export default function Inventario() {
         </Button>
       </div>
 
+      {/* Search input field */}
+      <div className="flex items-center space-x-2">
+        <Search className="h-4 w-4 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="Buscar por nombre o código..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
       {isLoading ? (
         <div>Cargando inventario...</div>
       ) : (
@@ -75,18 +97,16 @@ export default function Inventario() {
               <TableRow>
                 <TableHead>Código</TableHead>
                 <TableHead>Nombre</TableHead>
-               
                 <TableHead>Stock</TableHead>
                 <TableHead>Precio</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {productos?.map((producto: any) => (
+              {filteredProducts?.map((producto: any) => (
                 <TableRow key={producto.id}>
                   <TableCell>{producto.codigo}</TableCell>
                   <TableCell>{producto.nombre}</TableCell>
-                 
                   <TableCell>{producto.stock}</TableCell>
                   <TableCell>${producto.precio}</TableCell>
                   <TableCell className="flex space-x-2">
@@ -117,7 +137,7 @@ export default function Inventario() {
         onOpenChange={setOpenDialog} 
         producto={selectedProduct} 
         onSuccess={() => {
-          mutate(); // Revalidar la lista de productos después de crear/actualizar
+          mutate();
           setOpenDialog(false);
           setSelectedProduct(null);
         }} 

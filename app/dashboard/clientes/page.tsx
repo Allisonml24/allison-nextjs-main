@@ -1,4 +1,3 @@
-// app/clientes/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Trash2, Edit } from "lucide-react";
+import { PlusCircle, Trash2, Edit, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import axios from 'axios';
@@ -27,6 +26,8 @@ import axios from 'axios';
 export default function Clientes() {
   // Estados
   const [clientes, setClientes] = useState([]);
+  const [filteredClientes, setFilteredClientes] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<any>(null);
@@ -45,8 +46,9 @@ export default function Clientes() {
   const fetchClientes = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('https://allison-django-main-gmgm.vercel.app/api/clientes/');
+      const response = await axios.get('https://allison-django-main-d27e.vercel.app/api/clientes/');
       setClientes(response.data);
+      setFilteredClientes(response.data);
       setIsLoading(false);
     } catch (error) {
       console.error('Error al obtener clientes:', error);
@@ -60,10 +62,21 @@ export default function Clientes() {
     fetchClientes();
   }, []);
 
+  // Función de búsqueda
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    const lowercaseQuery = query.toLowerCase();
+    const filtered = clientes.filter((cliente: any) =>
+      cliente.nombre.toLowerCase().includes(lowercaseQuery) ||
+      cliente.email.toLowerCase().includes(lowercaseQuery) ||
+      cliente.telefono.includes(query)
+    );
+    setFilteredClientes(filtered);
+  };
+
   // Manejar apertura de diálogo
   const handleOpenDialog = (cliente?: any) => {
     if (cliente) {
-      // Editar cliente existente
       setSelectedCliente(cliente);
       setFormData({
         nombre: cliente.nombre,
@@ -72,7 +85,6 @@ export default function Clientes() {
         email: cliente.email
       });
     } else {
-      // Nuevo cliente
       setSelectedCliente(null);
       setFormData({
         nombre: '',
@@ -114,16 +126,13 @@ export default function Clientes() {
     }
     try {
       if (selectedCliente) {
-        // Actualizar cliente existente
-        await axios.put(`https://allison-django-main-gmgm.vercel.app/api/clientes/${selectedCliente.id}/`, formData);
+        await axios.put(`https://allison-django-main-d27e.vercel.app/api/clientes/${selectedCliente.id}/`, formData);
         toast.success('Cliente actualizado correctamente');
       } else {
-        // Crear nuevo cliente
-        await axios.post('https://allison-django-main-gmgm.vercel.app/api/clientes/', formData);
+        await axios.post('https://allison-django-main-d27e.vercel.app/api/clientes/', formData);
         toast.success('Cliente creado correctamente');
       }
       
-      // Cerrar diálogo y recargar lista
       setOpenDialog(false);
       fetchClientes();
     } catch (error) {
@@ -135,7 +144,7 @@ export default function Clientes() {
   // Eliminar cliente
   const handleDeleteCliente = async (id: number) => {
     try {
-      await axios.delete(`https://allison-django-main-gmgm.vercel.app/api/clientes/${id}/`);
+      await axios.delete(`https://allison-django-main-d27e.vercel.app/api/clientes/${id}/`);
       toast.success('Cliente eliminado correctamente');
       fetchClientes();
     } catch (error) {
@@ -165,6 +174,17 @@ export default function Clientes() {
         </Button>
       </div>
 
+      {/* Buscador */}
+      <div className="relative">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nombre, email o teléfono..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="pl-8"
+        />
+      </div>
+
       {isLoading ? (
         <div className="text-center">Cargando clientes...</div>
       ) : (
@@ -180,7 +200,7 @@ export default function Clientes() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clientes.map((cliente: any) => (
+              {filteredClientes.map((cliente: any) => (
                 <TableRow key={cliente.id}>
                   <TableCell>{cliente.nombre}</TableCell>
                   <TableCell>{cliente.direccion}</TableCell>
